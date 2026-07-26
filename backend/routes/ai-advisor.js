@@ -1,156 +1,196 @@
 import express from "express";
 import { askAI } from "../services/openai.service.js";
 import { advisorPrompt } from "../prompts/advisor.system.js";
-import { prepareContextForAI, getContextForAIAnalysis, getDashboardSummary } from "../services/data-provider.service.js";
+import {
+    prepareContextForAI,
+    getDashboardSummary
+} from "../services/data-provider.service.js";
 
 const router = express.Router();
 
-/**
- * POST /api/advisor
- * 
- * AI advisor endpoint that ALWAYS includes operational context
- * Every question must be analyzed with complete company data
- */
 router.post("/", async (req, res) => {
+
     try {
+
         console.log("📊 Advisor Request:", req.body);
 
-        // STEP 1: Get complete operational context
         console.log("🔄 Fetching operational context...");
+
         const contextData = await prepareContextForAI();
+
+        console.log("✅ Context Loaded");
 
         if (!contextData.success) {
             throw new Error("Failed to retrieve operational context");
         }
 
-        // STEP 2: Format user question with context
-        const userQuestion = req.body.question || req.body.message || "";
-        
+        // پشتیبانی از هر سه حالت
+        const userQuestion =
+            req.body.question ||
+            req.body.message ||
+            req.body.context ||
+            "";
+
         if (!userQuestion) {
             return res.status(400).json({
+                success: false,
                 error: "No question provided"
             });
         }
 
-        // STEP 3: Build complete context message for AI
+        const language = req.body.language || "fa";
+
+        const projects = contextData.data.projects.projects;
+        const production = contextData.data.production.production;
+        const financial = contextData.data.financial.financial;
+        const risks = contextData.data.risks.risks;
+        const capacity = contextData.data.capacity.capacity;
+        const inventory = contextData.data.inventory;
+        const resources = contextData.data.resources;
+
         const contextMessage = `
-SIMOPRIME OPERATIONAL INTELLIGENCE DATA:
 
-📊 PROJECTS:
-${contextData.data.projects.projects.map(p => `
-• ${p.name}:
-  - Product: ${p.projects[0]?.product || 'N/A'}
-  - Progress: ${p.projects[0]?.progress || 0}%
-  - Status: ${p.projects[0]?.status || 'Unknown'}
-  - Deadline: ${p.projects[0]?.deadline || 'N/A'}
-  - Delay: ${p.projects[0]?.delayDays || 0} days
-  - Priority: ${p.projects[0]?.priority || 'N/A'}
-  - Risks: ${p.projects[0]?.risks?.join(", ") || "None"}
-  - Budget: ${p.projects[0]?.budgetUsed || 0}/${p.projects[0]?.budget || 0}
-`).join("")}
+SIMOPRIME OPERATIONAL INTELLIGENCE
 
-📈 PRODUCTION METRICS:
-- Efficiency: ${contextData.data.production.efficiency}%
-- Capacity Utilization: ${contextData.data.production.capacity}%
-- Quality Rate: ${contextData.data.production.qualityRate}%
-- Active Lines: ${contextData.data.production.activeLines}/4
+PROJECTS
 
-💰 FINANCIAL STATUS:
-- Total Budget Utilization: ${contextData.data.financial.financial.utilizationPercent}%
-- Total Budget: ${contextData.data.financial.financial.totalBudget}
-- Total Used: ${contextData.data.financial.financial.totalUsed}
-- Remaining: ${contextData.data.financial.financial.remaining}
+${projects.map(p => `
+Project: ${p.name}
+Product: ${p.product}
+Progress: ${p.progress}%
+Status: ${p.status}
+Deadline: ${p.deadline}
+Delay: ${p.delayDays} days
+Priority: ${p.priority}
+Budget: ${p.budgetUsed}/${p.budget}
+Risks: ${(p.risks || []).join(", ")}
+`).join("\n")}
 
-⚠️ RISKS:
-${contextData.data.risks.risks.risks.map(r => `
-- ${r.title}
-  Severity: ${r.severity} | Probability: ${r.probability} | Impact: ${r.impact}
-  Mitigation: ${r.mitigationPlan}
-`).join("")}
+PRODUCTION
 
-⚙️ CAPACITY:
-- Available Capacity: ${contextData.data.capacity.capacity.availableCapacity}%
-- Can Accept New Project: ${contextData.data.capacity.capacity.canAcceptProject ? 'Yes' : 'No'}
+Efficiency: ${production.efficiency}%
+Capacity: ${production.capacity}%
+Quality Rate: ${production.qualityRate}%
+Active Lines: ${production.activeLines}
 
-👥 RESOURCES:
-- Total Employees: ${contextData.data.resources.resources.totalEmployees}
-- Available: ${contextData.data.resources.teamUtilization.available}
-- Absenteeism: ${contextData.data.resources.resources.absenteeism}%
+FINANCIAL
 
-📦 INVENTORY:
-- At Risk Parts: ${contextData.data.inventory.atRiskCount}
-- Critical Alerts: ${contextData.data.inventory.atRiskParts.length}
+Budget Utilization: ${financial.utilizationPercent}%
+Total Budget: ${financial.totalBudget}
+Budget Used: ${financial.totalUsed}
+Remaining: ${financial.remaining}
 
-USER QUESTION: ${userQuestion}
+RISKS
+
+${risks.risks.map(r => `
+Title: ${r.title}
+Severity: ${r.severity}
+Probability: ${r.probability}
+Impact: ${r.impact}
+Mitigation: ${r.mitigationPlan}
+`).join("\n")}
+
+CAPACITY
+
+Available Capacity: ${capacity.availableCapacity}%
+Can Accept Project: ${capacity.canAcceptProject}
+
+RESOURCES
+
+Total Employees: ${resources.resources.totalEmployees}
+Available Employees: ${resources.teamUtilization.available}
+Absenteeism: ${resources.resources.absenteeism}
+
+INVENTORY
+
+Critical Parts: ${inventory.atRiskCount}
+
+USER QUESTION
+
+${userQuestion}
+
 `;
 
-        console.log("🤖 Sending to AI with full context...");
+        console.log("🤖 Sending request to OpenAI...");
 
-        // STEP 4: Ask AI with complete context
-        const analysis = await askAI(advisorPrompt, contextMessage);
+        const analysis = await askAI(
+            advisorPrompt,
+            contextMessage,
+            language
+        );
 
-        // STEP 5: Return analysis
-        res.json({
+        console.log("✅ OpenAI responded");
+
+        return res.json({
             success: true,
             question: userQuestion,
-            analysis: analysis,
+            analysis,
             timestamp: new Date().toISOString(),
             dataSource: "demo-operational-intelligence"
         });
 
     } catch (error) {
-        console.error("❌ Advisor Error:", error);
 
-        res.status(500).json({
+        console.error("============== ADVISOR ERROR ==============");
+        console.error(error);
+        console.error(error.stack);
+        console.error("===========================================");
+
+        return res.status(500).json({
             success: false,
             error: error.message,
-            timestamp: new Date().toISOString()
+            stack: process.env.NODE_ENV !== "production" ? error.stack : undefined
         });
     }
+
 });
 
-/**
- * GET /api/advisor/dashboard
- * Get dashboard summary with all operational data
- */
 router.get("/dashboard", async (req, res) => {
+
     try {
-        const dashboardData = await getDashboardSummary();
+
+        const dashboard = await getDashboardSummary();
 
         res.json({
             success: true,
-            ...dashboardData
+            ...dashboard
         });
 
     } catch (error) {
-        console.error("❌ Dashboard Error:", error);
+
+        console.error(error);
+
         res.status(500).json({
             success: false,
             error: error.message
         });
+
     }
+
 });
 
-/**
- * GET /api/advisor/context
- * Get raw operational context (for debugging/visualization)
- */
 router.get("/context", async (req, res) => {
+
     try {
-        const contextData = await prepareContextForAI();
+
+        const context = await prepareContextForAI();
 
         res.json({
             success: true,
-            ...contextData
+            ...context
         });
 
     } catch (error) {
-        console.error("❌ Context Error:", error);
+
+        console.error(error);
+
         res.status(500).json({
             success: false,
             error: error.message
         });
+
     }
+
 });
 
 export default router;
