@@ -110,41 +110,29 @@ export function Advisor() {
                 </div>
                 <p className="text-sm text-red-300">{error}</p>
               </div>
-            ) : response?.success ? (
+           ) : response?.success ? (
   <div className="space-y-4">
 
     <div className="flex items-center gap-2">
       <CheckCircle2 size={17} className="text-emerald-400" />
+
       <p className="text-sm font-semibold text-white">
         {t('advisor.responseTitle')}
       </p>
     </div>
 
-    {/* 
-      نمایش قبلی متن خام:
-      اگر جایی وجود داشت حذف نشود، فقط کامنت می‌کنیم
-
-      <p className="whitespace-pre-wrap text-sm leading-7 text-slate-300">
-        {response.analysis}
-      </p>
-    */}
-
-    {/* نمایش Markdown واقعی */}
     <div className="text-sm leading-7 text-slate-300">
-      <MarkdownRenderer content={response.analysis} />
+      <MarkdownRenderer 
+        content={response.analysis}
+      />
     </div>
 
   </div>
-  <MarkdownRenderer content={response.analysis} />
-</div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <BotIcon size={17} className="text-[#66cef5]" />
-                <p className="text-sm font-semibold text-slate-400">
-                  {t('advisor.response')}
-                </p>
-              </div>
-            )}
+) : (
+  <div className="text-sm text-slate-400">
+    {t('advisor.source')}
+  </div>
+)}
           </div>
         </Panel>
       </div>
