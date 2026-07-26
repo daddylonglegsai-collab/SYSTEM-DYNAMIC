@@ -4,82 +4,86 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const client = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY
 });
 
-/**
- * ✅ FIXED:
- * - Changed model from "gpt-4.1-mini" (invalid) to "gpt-4o-mini" (valid)
- * - Added error logging
- * - Validates API key on startup
- * - Handles language parameter properly
- */
-export async function askAI(systemPrompt, userPrompt, language = 'en') {
-    try {
-        // Validate inputs
-        if (!systemPrompt || !userPrompt) {
-            throw new Error('System prompt and user prompt are required');
+export async function askAI(systemPrompt, userPrompt, language = "en") {
+  try {
+    if (!systemPrompt) {
+      throw new Error("System prompt is required");
+    }
+
+    if (!userPrompt) {
+      throw new Error("User prompt is required");
+    }
+
+    const languageInstruction =
+      language === "fa"
+        ? `
+تمام پاسخ‌ها باید فقط به زبان فارسی باشند.
+هیچ متن انگلیسی تولید نکن.
+تمام تحلیل‌ها، KPIها، ریسک‌ها و پیشنهادها باید فارسی باشند.
+`
+        : `
+Answer only in English.
+Do not generate Persian text.
+`;
+
+    const response = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `${systemPrompt}\n\n${languageInstruction}`
+        },
+        {
+          role: "user",
+          content: userPrompt
         }
+      ],
+      temperature: 0.7,
+      max_tokens: 2000
+    });
 
-        // Inject language instruction into system prompt
-        const languageInstruction = language === 'fa' 
-            ? "\n\n[LANGUAGE RULE] تمام پاسخ باید فقط به فارسی باشد. تحلیل‌ها، KPI‌ها، ریسک‌ها، پیشنهادها و نتیجه‌گیری باید فارسی باشند."
-            : "\n\n[LANGUAGE RULE] Answer only in English.";
-        
-        const enhancedSystemPrompt = systemPrompt + languageInstruction;
+    if (
+      !response ||
+      !response.choices ||
+      !response.choices.length ||
+      !response.choices[0].message
+    ) {
+      throw new Error("Invalid response received from OpenAI.");
+    }
 
-        // Call OpenAI API with VALID model
-        const response = await client.chat.completions.create({
-            model: "gpt-4o-mini", // ✅ FIXED: Was "gpt-4.1-mini"
-            messages: [
-                {
-                    role: "system",
-                    content: enhancedSystemPrompt
-                },
-                {
-                    role: "user",
-                    content: userPrompt
-                }
-            ],
-            temperature: 0.7,
-            max_tokens: 2000
-        });
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error("\n========== OPENAI ERROR ==========\n");
 
-        if (!response.choices || !response.choices[0] || !response.choices[0].message) {
-            throw new Error('Invalid response structure from OpenAI API');
-        }
-
-        return response.choices[0].message.content;
-
-    }catch (error) {
-
-    console.error("========== OPENAI ERROR ==========");
-
-    console.error(error);
-
+    console.error("Status:");
     console.error(error.status);
 
+    console.error("\nMessage:");
     console.error(error.message);
 
+    console.error("\nError Object:");
     console.error(error.error);
 
+    console.error("\nResponse:");
     console.error(error.response?.data);
 
-    console.error(JSON.stringify(error,null,2));
+    console.error("\nComplete Error:");
+    console.error(JSON.stringify(error, null, 2));
 
-    throw error;
-});
+    console.error("\n==================================\n");
 
-        // Re-throw with more context
-        throw new Error(`OpenAI Service Error: ${error.message}`);
-    }
+    throw new Error(`OpenAI Service Error: ${error.message}`);
+  }
 }
 
-// ✅ Validate API key on startup
 export function validateAPIKey() {
-    if (!process.env.OPENAI_API_KEY) {
-        console.error('❌ CRITICAL: OPENAI_API_KEY environment variable is not set');
-        process.exit(1);
-    }
-    console.log('✅ OpenAI API key validated');
+  if (!process.env.OPENAI_API_KEY) {
+    console.error("❌ OPENAI_API_KEY is missing.");
+    process.exit(1);
+  }
+
+  console.log("✅ OpenAI API Key loaded.");
 }
