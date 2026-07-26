@@ -3,6 +3,7 @@ import { BotIcon, SendIcon, SparklesIcon, AlertCircle, CheckCircle2 } from 'luci
 import { Panel, SectionHeading, StatusPill } from '../components/ExecutiveUI';
 import { useI18n } from '../i18n';
 import { apiService, type AdvisorResponse } from '../services/api';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 
 export function Advisor() {
   const { t } = useI18n();
@@ -110,17 +111,32 @@ export function Advisor() {
                 <p className="text-sm text-red-300">{error}</p>
               </div>
             ) : response?.success ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 size={17} className="text-emerald-400" />
-                  <p className="text-sm font-semibold text-white">
-                    {t('advisor.responseTitle')}
-                  </p>
-                </div>
-                <p className="whitespace-pre-wrap text-sm leading-7 text-slate-300">
-                  {response.analysis}
-                </p>
-              </div>
+  <div className="space-y-4">
+
+    <div className="flex items-center gap-2">
+      <CheckCircle2 size={17} className="text-emerald-400" />
+      <p className="text-sm font-semibold text-white">
+        {t('advisor.responseTitle')}
+      </p>
+    </div>
+
+    {/* 
+      نمایش قبلی متن خام:
+      اگر جایی وجود داشت حذف نشود، فقط کامنت می‌کنیم
+
+      <p className="whitespace-pre-wrap text-sm leading-7 text-slate-300">
+        {response.analysis}
+      </p>
+    */}
+
+    {/* نمایش Markdown واقعی */}
+    <div className="text-sm leading-7 text-slate-300">
+      <MarkdownRenderer content={response.analysis} />
+    </div>
+
+  </div>
+  <MarkdownRenderer content={response.analysis} />
+</div>
             ) : (
               <div className="flex items-center gap-2">
                 <BotIcon size={17} className="text-[#66cef5]" />
