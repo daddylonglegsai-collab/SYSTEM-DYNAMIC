@@ -9,6 +9,7 @@ import { I18nProvider, useI18n } from './i18n';
 import { SecurityProvider, useSecurity } from './components/Security';
 import { useScreenInit } from './useScreenInit.js';
 import { apiService, type SimulationResponse } from './services/api';
+import MarkdownRenderer from './components/MarkdownRenderer';
 
 function Simulation() {
   const { t } = useI18n();
@@ -166,9 +167,9 @@ function Simulation() {
 
             {simulationResult?.success && (
               <div className="mt-4 rounded-lg bg-emerald-500/10 p-4 text-xs text-emerald-400">
-                <p className="whitespace-pre-wrap font-mono">
-                  {simulationResult.simulation}
-                </p>
+               <div className="text-xs text-emerald-400">
+  <MarkdownRenderer content={simulationResult.simulation} />
+</div>
               </div>
             )}
 
