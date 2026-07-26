@@ -19,6 +19,7 @@ export default function MarkdownRenderer({
         text-right
         leading-8
         text-slate-300
+        font-bnazanin
       "
     >
       <ReactMarkdown
