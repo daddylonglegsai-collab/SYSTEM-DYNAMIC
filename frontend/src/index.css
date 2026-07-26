@@ -3,6 +3,12 @@
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
+@font-face {
+  font-family: 'BNazanin';
+  src: url('./assets/fonts/BNazanin.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
 
 :root {
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
