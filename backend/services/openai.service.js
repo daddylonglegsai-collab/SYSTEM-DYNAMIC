@@ -51,14 +51,24 @@ export async function askAI(systemPrompt, userPrompt, language = 'en') {
 
         return response.choices[0].message.content;
 
-    } catch (error) {
-        // ✅ FIXED: Better error logging
-        console.error('❌ OpenAI API Error:', {
-            message: error.message,
-            status: error.status,
-            type: error.type,
-            timestamp: new Date().toISOString()
-        });
+    }catch (error) {
+
+    console.error("========== OPENAI ERROR ==========");
+
+    console.error(error);
+
+    console.error(error.status);
+
+    console.error(error.message);
+
+    console.error(error.error);
+
+    console.error(error.response?.data);
+
+    console.error(JSON.stringify(error,null,2));
+
+    throw error;
+});
 
         // Re-throw with more context
         throw new Error(`OpenAI Service Error: ${error.message}`);
